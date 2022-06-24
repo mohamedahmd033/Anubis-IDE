@@ -8,11 +8,14 @@ import glob
 import serial
 
 import Python_Coloring
+import CSharp_Coloring
 from PyQt5 import QtCore
 from PyQt5 import QtGui
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from pathlib import Path
+
+language="python"
 
 def serial_ports():
     """ Lists serial port names
@@ -185,9 +188,14 @@ class Widget(QWidget):
     # defining a new Slot (takes string) to save the text inside the first text editor
     @pyqtSlot(str)
     def Saving(s):
-        with open('main.py', 'w') as f:
-            TEXT = text.toPlainText()
-            f.write(TEXT)
+        if(language=="python"):    
+            with open('main.py', 'w') as f:
+                TEXT = text.toPlainText()
+                f.write(TEXT)
+        else:
+            with open('main.cs','w') as f:
+                TEXT = text.toPlainText()
+                f.write(TEXT)
 
     # defining a new Slot (takes string) to set the string to the text editor
     @pyqtSlot(str)
@@ -199,6 +207,12 @@ class Widget(QWidget):
 
         nn = self.sender().model().filePath(index)
         nn = tuple([nn])
+
+        langauge=nn[0].split(".")[1]
+        if(language=="python"):
+            Python_Coloring.PythonHighlighter(text)
+        else:
+            CSharp_Coloring.CSharpHighlighter(text)
 
         if nn[0]:
             f = open(nn[0],'r')
@@ -257,9 +271,11 @@ class UI(QMainWindow):
         menu = self.menuBar()
 
         # I have three menu items
+        # a new menu item is added
         filemenu = menu.addMenu('File')
         Port = menu.addMenu('Port')
         Run = menu.addMenu('Run')
+        languagemenu=menu.addMenu('language')
 
         # As any PC or laptop have many ports, so I need to list them to the User
         # so I made (Port_Action) to add the Ports got from (serial_ports()) function
@@ -299,6 +315,18 @@ class UI(QMainWindow):
         filemenu.addAction(Close_Action)
         filemenu.addAction(Open_Action)
 
+        #Making and adding language features
+        python_Action=QAction("Python",self)
+        python_Action.triggered.connect(self.python_highlighter)
+        #python_Action.setShortcut("ctrl+p")
+
+        csharp_Action=QAction("csharp",self)
+        csharp_Action.triggered.connect(self.csharp_highlighter)
+        #csharp_Action.setShortcut("ctrl+c")
+
+        languagemenu.addAction(python_Action)
+        languagemenu.addAction(csharp_Action)
+
 
         # Seting the window Geometry
         self.setGeometry(200, 150, 600, 500)
@@ -325,6 +353,10 @@ class UI(QMainWindow):
         else:
             text2.append("Please Select Your Port Number First")
 
+    def csharp_highlighter(self):
+        CSharp_Coloring.CSharpHighlighter(text)
+    def python_highlighter(self):
+        Python_Coloring.PythonHighlighter(text)
 
     # this function is made to get which port was selected by the user
     @QtCore.pyqtSlot()
@@ -332,7 +364,6 @@ class UI(QMainWindow):
         action = self.sender()
         self.portNo = action.text()
         self.port_flag = 0
-
 
 
     # I made this function to save the code into a file
@@ -343,7 +374,12 @@ class UI(QMainWindow):
     # I made this function to open a file and exhibits it to the user in a text editor
     def open(self):
         file_name = QFileDialog.getOpenFileName(self,'Open File','/home')
-
+        language = file_name[0].split(".")[1]
+        if(language=="python"):
+            Python_Coloring.PythonHighlighter(text)
+        else:
+            CSharp_Coloring.CSharpHighlighter(text)
+            
         if file_name[0]:
             f = open(file_name[0],'r')
             with f:
